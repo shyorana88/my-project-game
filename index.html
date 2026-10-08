@@ -4,100 +4,150 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>My Game World 🎮</title>
+<title>My Games</title>
 
 <style>
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    text-align: center;
+    background: #111;
     color: white;
-    background: linear-gradient(135deg, #090979, #00d4ff);
-    min-height: 100vh;
+    text-align: center;
 }
 
 h1 {
-    padding-top: 40px;
-    font-size: 45px;
+    margin: 30px 0 10px;
 }
 
-p {
-    font-size: 20px;
+.subtitle {
+    color: #aaa;
+    margin-bottom: 30px;
 }
 
 .games {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 25px;
-    margin: 40px auto;
-    max-width: 1000px;
+    gap: 20px;
+    padding: 20px;
 }
 
 .game {
-    width: 250px;
-    padding: 30px 20px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.15);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    background: #222;
+    width: 280px;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 0 15px #000;
 }
 
-.emoji {
-    font-size: 60px;
+.game h2 {
+    margin-top: 0;
 }
 
-button {
+button, a {
+    display: inline-block;
+    margin: 6px;
+    padding: 10px 15px;
+    border-radius: 8px;
     border: none;
-    border-radius: 30px;
-    padding: 14px 25px;
-    font-size: 17px;
-    font-weight: bold;
+    text-decoration: none;
     cursor: pointer;
-    background: white;
-    color: #090979;
+    font-weight: bold;
 }
 
-button:hover {
-    transform: scale(1.08);
+.play {
+    background: #00c853;
+    color: white;
+}
+
+.download {
+    background: #2979ff;
+    color: white;
+}
+
+.follow {
+    background: #ff1744;
+    color: white;
+}
+
+button:hover, a:hover {
+    transform: scale(1.05);
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎮 MY GAME WORLD 🎮</h1>
-<p>Choose your game and start playing!</p>
+<h1>🎮 My Games</h1>
+<p class="subtitle">Play • Download • Follow</p>
 
 <div class="games">
 
+    <!-- GAME 1 -->
     <div class="game">
-        <div class="emoji">🚗</div>
-        <h2>Neon Car Dodge</h2>
-        <p>Dodge cars and collect coins!</p>
-        <button onclick="location.href='neon_car_dodge_upgraded%20(2).html'">
-            PLAY GAME
+        <h2>🚗 Neon Car Dodge</h2>
+
+        <a class="play" href="game.html">🎮 PLAY</a>
+
+        <a class="download" href="game.html" download>
+            ⬇️ DOWNLOAD
+        </a>
+
+        <button class="follow" onclick="followGame(this)">
+            ⭐ FOLLOW
         </button>
     </div>
 
+
+    <!-- GAME 2 -->
     <div class="game">
-        <div class="emoji">🎯</div>
-        <h2>Papa Game</h2>
-        <p>Play the Papa game!</p>
-        <button onclick="location.href='papa.html'">
-            PLAY GAME
+        <h2>🎯 Game 2</h2>
+
+        <a class="play" href="game2.html">🎮 PLAY</a>
+
+        <a class="download" href="game2.html" download>
+            ⬇️ DOWNLOAD
+        </a>
+
+        <button class="follow" onclick="followGame(this)">
+            ⭐ FOLLOW
         </button>
     </div>
 
+
+    <!-- GAME 3 -->
     <div class="game">
-        <div class="emoji">🎮</div>
-        <h2>My Main Game</h2>
-        <p>Play your main game!</p>
-        <button onclick="location.href='index.html'">
-            PLAY GAME
+        <h2>🔥 Game 3</h2>
+
+        <a class="play" href="game3.html">🎮 PLAY</a>
+
+        <a class="download" href="game3.html" download>
+            ⬇️ DOWNLOAD
+        </a>
+
+        <button class="follow" onclick="followGame(this)">
+            ⭐ FOLLOW
         </button>
     </div>
 
 </div>
+
+<script>
+
+function followGame(button) {
+
+    if (button.innerText === "⭐ FOLLOW") {
+        button.innerText = "✅ FOLLOWING";
+        localStorage.setItem("following", "yes");
+    } 
+    else {
+        button.innerText = "⭐ FOLLOW";
+        localStorage.removeItem("following");
+    }
+
+}
+
+</script>
 
 </body>
 </html>
