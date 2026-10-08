@@ -1,397 +1,103 @@
-<html>
-<head>
-<title>        <\title>
-<body>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Space Blaster</title>
+
+<title>My Game World 🎮</title>
 
 <style>
-* {
-    box-sizing: border-box;
-}
-
 body {
     margin: 0;
-    background: #080b16;
-    color: white;
     font-family: Arial, sans-serif;
     text-align: center;
+    color: white;
+    background: linear-gradient(135deg, #090979, #00d4ff);
+    min-height: 100vh;
 }
 
 h1 {
-    margin: 15px 0 5px;
+    padding-top: 40px;
+    font-size: 45px;
 }
 
-#score {
-    font-size: 22px;
-    margin-bottom: 10px;
+p {
+    font-size: 20px;
 }
 
-#game {
-    position: relative;
-    width: 400px;
-    height: 600px;
-    max-width: 95vw;
-    margin: auto;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 20% 20%, white 1px, transparent 2px),
-        radial-gradient(circle at 70% 40%, white 1px, transparent 2px),
-        radial-gradient(circle at 40% 80%, white 1px, transparent 2px),
-        #10162b;
-    border: 3px solid #5865f2;
-    border-radius: 15px;
-}
-
-/* Player */
-#player {
-    position: absolute;
-    width: 55px;
-    height: 55px;
-    bottom: 20px;
-    left: 172px;
-    background: #38bdf8;
-    border-radius: 50% 50% 12px 12px;
-    box-shadow: 0 0 20px #38bdf8;
-}
-
-#player::after {
-    content: "";
-    position: absolute;
-    width: 10px;
-    height: 25px;
-    background: #e2e8f0;
-    left: 22px;
-    top: -18px;
-    border-radius: 5px;
-}
-
-/* Enemy */
-.enemy {
-    position: absolute;
-    width: 45px;
-    height: 45px;
-    background: #ef4444;
-    border-radius: 50%;
-    box-shadow: 0 0 15px #ef4444;
-}
-
-.enemy::before,
-.enemy::after {
-    content: "";
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: white;
-    border-radius: 50%;
-    top: 12px;
-}
-
-.enemy::before {
-    left: 9px;
-}
-
-.enemy::after {
-    right: 9px;
-}
-
-/* Bullet */
-.bullet {
-    position: absolute;
-    width: 6px;
-    height: 18px;
-    background: #facc15;
-    border-radius: 5px;
-    box-shadow: 0 0 10px #facc15;
-}
-
-/* Game Over */
-#gameOver {
-    display: none;
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    align-items: center;
+.games {
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    flex-direction: column;
+    gap: 25px;
+    margin: 40px auto;
+    max-width: 1000px;
 }
 
-#gameOver h2 {
-    color: #ff4444;
-    font-size: 40px;
+.game {
+    width: 250px;
+    padding: 30px 20px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.emoji {
+    font-size: 60px;
 }
 
 button {
-    margin-top: 15px;
-    padding: 12px 25px;
     border: none;
-    border-radius: 10px;
-    background: #5865f2;
-    color: white;
-    font-size: 18px;
+    border-radius: 30px;
+    padding: 14px 25px;
+    font-size: 17px;
+    font-weight: bold;
     cursor: pointer;
+    background: white;
+    color: #090979;
 }
 
 button:hover {
-    background: #4752c4;
+    transform: scale(1.08);
 }
 </style>
 </head>
 
 <body>
 
-<h1>🔫 SPACE BLASTER</h1>
-<div id="score">Score: 0</div>
+<h1>🎮 MY GAME WORLD 🎮</h1>
+<p>Choose your game and start playing!</p>
 
-<div id="game">
+<div class="games">
 
-    <div id="player"></div>
+    <div class="game">
+        <div class="emoji">🚗</div>
+        <h2>Neon Car Dodge</h2>
+        <p>Dodge cars and collect coins!</p>
+        <button onclick="location.href='neon_car_dodge_upgraded%20(2).html'">
+            PLAY GAME
+        </button>
+    </div>
 
-    <div id="gameOver">
-        <h2>GAME OVER</h2>
-        <p id="finalScore"></p>
-        <button onclick="restartGame()">🔄 PLAY AGAIN</button>
+    <div class="game">
+        <div class="emoji">🎯</div>
+        <h2>Papa Game</h2>
+        <p>Play the Papa game!</p>
+        <button onclick="location.href='papa.html'">
+            PLAY GAME
+        </button>
+    </div>
+
+    <div class="game">
+        <div class="emoji">🎮</div>
+        <h2>My Main Game</h2>
+        <p>Play your main game!</p>
+        <button onclick="location.href='index.html'">
+            PLAY GAME
+        </button>
     </div>
 
 </div>
 
-<p>
-    ⬅️ ➡️ Move &nbsp; | &nbsp; SPACE = Shoot
-</p>
-
-<script>
-
-const game = document.getElementById("game");
-const player = document.getElementById("player");
-const scoreText = document.getElementById("score");
-const gameOver = document.getElementById("gameOver");
-const finalScore = document.getElementById("finalScore");
-
-let playerX = 172;
-let score = 0;
-let gameRunning = true;
-
-let bullets = [];
-let enemies = [];
-
-let keys = {
-    left: false,
-    right: false
-};
-
-/* Keyboard */
-document.addEventListener("keydown", function(e) {
-
-    if (e.key === "ArrowLeft") {
-        keys.left = true;
-    }
-
-    if (e.key === "ArrowRight") {
-        keys.right = true;
-    }
-
-    if (e.code === "Space") {
-        shoot();
-    }
-});
-
-document.addEventListener("keyup", function(e) {
-
-    if (e.key === "ArrowLeft") {
-        keys.left = false;
-    }
-
-    if (e.key === "ArrowRight") {
-        keys.right = false;
-    }
-});
-
-/* Shoot */
-function shoot() {
-
-    if (!gameRunning) return;
-
-    const bullet = document.createElement("div");
-
-    bullet.className = "bullet";
-
-    bullet.style.left = (playerX + 25) + "px";
-    bullet.style.top = "520px";
-
-    game.appendChild(bullet);
-
-    bullets.push({
-        element: bullet,
-        x: playerX + 25,
-        y: 520
-    });
-}
-
-/* Create enemy */
-function createEnemy() {
-
-    if (!gameRunning) return;
-
-    const enemy = document.createElement("div");
-
-    enemy.className = "enemy";
-
-    let x = Math.floor(Math.random() * 340);
-
-    enemy.style.left = x + "px";
-    enemy.style.top = "-50px";
-
-    game.appendChild(enemy);
-
-    enemies.push({
-        element: enemy,
-        x: x,
-        y: -50
-    });
-}
-
-/* Collision */
-function collision(a, b) {
-
-    return (
-        a.x < b.x + 45 &&
-        a.x + 8 > b.x &&
-        a.y < b.y + 45 &&
-        a.y + 18 > b.y
-    );
-}
-
-/* Game Loop */
-function gameLoop() {
-
-    if (!gameRunning) return;
-
-    /* Player */
-    if (keys.left) {
-        playerX -= 6;
-    }
-
-    if (keys.right) {
-        playerX += 6;
-    }
-
-    if (playerX < 5) {
-        playerX = 5;
-    }
-
-    if (playerX > 340) {
-        playerX = 340;
-    }
-
-    player.style.left = playerX + "px";
-
-    /* Bullets */
-    bullets.forEach((bullet, index) => {
-
-        bullet.y -= 10;
-
-        bullet.element.style.top =
-            bullet.y + "px";
-
-        if (bullet.y < -30) {
-
-            bullet.element.remove();
-            bullets.splice(index, 1);
-        }
-    });
-
-    /* Enemies */
-    enemies.forEach((enemy, enemyIndex) => {
-
-        enemy.y += 3 + score * 0.01;
-
-        enemy.element.style.top =
-            enemy.y + "px";
-
-        /* Enemy reaches player */
-        if (enemy.y > 530) {
-
-            gameOverFunction();
-        }
-
-        /* Bullet collision */
-        bullets.forEach((bullet, bulletIndex) => {
-
-            if (collision(bullet, enemy)) {
-
-                bullet.element.remove();
-                enemy.element.remove();
-
-                bullets.splice(bulletIndex, 1);
-                enemies.splice(enemyIndex, 1);
-
-                score += 10;
-
-                scoreText.innerText =
-                    "Score: " + score;
-            }
-
-        });
-
-    });
-
-    requestAnimationFrame(gameLoop);
-}
-
-/* Game Over */
-function gameOverFunction() {
-
-    if (!gameRunning) return;
-
-    gameRunning = false;
-
-    finalScore.innerText =
-        "Your Score: " + score;
-
-    gameOver.style.display = "flex";
-}
-
-/* Restart */
-function restartGame() {
-
-    bullets.forEach(b => b.element.remove());
-    enemies.forEach(e => e.element.remove());
-
-    bullets = [];
-    enemies = [];
-
-    playerX = 172;
-    score = 0;
-
-    player.style.left = playerX + "px";
-
-    scoreText.innerText = "Score: 0";
-
-    gameOver.style.display = "none";
-
-    gameRunning = true;
-
-    gameLoop();
-}
-
-/* Enemy spawn */
-setInterval(function() {
-
-    if (gameRunning) {
-        createEnemy();
-    }
-
-}, 900);
-
-gameLoop();
-
-</script>
-
 </body>
 </html>
-<\head>
-<\html>
