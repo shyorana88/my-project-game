@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Runner - Level & Coin Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #090d16;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .arcade-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 sm:p-6 overflow-x-hidden">
+
+    <!-- Header Section -->
+    <header class="text-center my-2">
+        <h1 class="arcade-font text-2xl sm:text-4xl text-cyan-400 tracking-wider drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]">
+            NEON RUNNER
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Collect Coins • Dodge Barriers • Survive Levels!</p>
+    </header>
+
+    <!-- Main Game Canvas Frame -->
+    <main class="w-full max-w-3xl flex flex-col items-center">
+        <div class="relative w-full bg-slate-950 border-4 border-cyan-500/50 rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)] overflow-hidden aspect-[2/1] sm:aspect-[21/9]">
+            
+            <!-- HUD Stats Overlay -->
+            <div class="absolute top-3 left-3 right-3 flex justify-between items-center z-10 arcade-font text-[10px] sm:text-xs pointer-events-none">
+                <div class="flex gap-2 sm:gap-3">
+                    <div class="bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-slate-700 text-yellow-400 flex items-center gap-1 shadow">
+                        🪙 <span id="coinDisplay">0</span>
+                    </div>
+                    <div class="bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-slate-700 text-purple-400 flex items-center gap-1 shadow">
+                        LVL <span id="levelDisplay">1</span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 sm:gap-3">
+                    <div class="bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-slate-700 text-cyan-300 shadow">
+                        HI: <span id="highScoreDisplay">00000</span>
+                    </div>
+                    <div class="bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-slate-700 text-emerald-400 shadow">
+                        SCORE: <span id="scoreDisplay">00000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start / Game Over Screen Overlay -->
+            <div id="menuOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center z-20 text-center p-6 transition-all duration-300">
+                <div id="menuTitleIcon" class="text-4xl sm:text-5xl mb-3 animate-bounce">🏃‍♂️</div>
+                <h2 id="menuHeading" class="arcade-font text-lg sm:text-2xl text-cyan-400 mb-2">READY TO RUN?</h2>
+                <p id="menuSubtext" class="text-xs sm:text-sm text-slate-300 max-w-md mb-6 leading-relaxed">
+                    Press <span class="text-yellow-400 font-bold">SPACEBAR</span>, <span class="text-yellow-400 font-bold">UP ARROW</span>, or <span class="text-yellow-400 font-bold">TAP</span> to Jump & Double Jump!<br>Collect gold coins 🪙 for extra bonus points.
+                </p>
+                <button id="actionBtn" class="arcade-font bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.6)] transform hover:scale-105 active:scale-95 transition-all text-xs sm:text-sm cursor-pointer">
+                    START GAME
+                </button>
+            </div>
+
+            <!-- Game Canvas -->
+            <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+        </div>
+
+        <!-- Mobile Touch Jump Button -->
+        <div class="mt-4 flex gap-4 w-full max-w-md sm:hidden">
+            <button id="touchJumpBtn" class="flex-1 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-bold py-4 rounded-xl text-center shadow-lg active:translate-y-1 transition-all arcade-font text-xs">
+                JUMP / DOUBLE JUMP
+            </button>
+        </div>
+    </main>
+
+    <footer class="text-center text-xs text-slate-500 mt-4">
+        <p>Single File HTML5 Arcade Game • Easy to Deploy on GitHub Pages</p>
+    </footer>
+
+    <!-- Game Script Logic -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const coinDisplay = document.getElementById('coinDisplay');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const menuHeading = document.getElementById('menuHeading');
+        const menuSubtext = document.getElementById('menuSubtext');
+        const actionBtn = document.getElementById('actionBtn');
+        const touchJumpBtn = document.getElementById('touchJumpBtn');
+        const menuTitleIcon = document.getElementById('menuTitleIcon');
+
+        // Sound System with Synthesizer
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'jump') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.exponentialRampToValueAtTime(440, now + 0.12);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'coin') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(987.77, now); // B5
+                    osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'levelup') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.1);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'gameover') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(50, now + 0.4);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch(e) {}
+        }
+
+        // Handle Canvas Resolution
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game State Variables
+        let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+        let score = 0;
+        let coins = 0;
+        let level = 1;
+        let highScore = localStorage.getItem('neon_runner_highscore_v2') || 0;
+        highScoreDisplay.textContent = String(Math.floor(highScore)).padStart(5, '0');
+
+        let baseSpeed = 5.5;
+        let gameSpeed = 5.5;
+        let gravity = 0.55;
+        let frameCount = 0;
+
+        // Level Up Announcement banner animation
+        let levelUpBanner = { text: '', alpha: 0, scale: 1 };
+
+        const player = {
+            x: 50,
+            y: 0,
+            width: 36,
+            height: 42,
+            vy: 0,
+            jumpForce: -11,
+            isJumping: false,
+            jumpsLeft: 2
+        };
+
+        let obstacles = [];
+        let coinItems = [];
+        let particles = [];
+        let stars = [];
+
+        // Stars Background
+        for (let i = 0; i < 45; i++) {
+            stars.push({
+                x: Math.random() * 800,
+                y: Math.random() * 300,
+                size: Math.random() * 2 + 1,
+                speed: Math.random() * 0.4 + 0.2
+            });
+        }
+
+        function resetGame() {
+            score = 0;
+            coins = 0;
+            level = 1;
+            gameSpeed = baseSpeed;
+            obstacles = [];
+            coinItems = [];
+            particles = [];
+            frameCount = 0;
+            
+            coinDisplay.textContent = coins;
+            levelDisplay.textContent = level;
+
+            const groundY = canvas.clientHeight - 55;
+            player.y = groundY - player.height;
+            player.vy = 0;
+            player.jumpsLeft = 2;
+        }
+
+        function triggerJump() {
+            initAudio();
+            if (gameState === 'START' || gameState === 'GAMEOVER') {
+                startGame();
+                return;
+            }
+            if (gameState === 'PLAYING') {
+                if (player.jumpsLeft > 0) {
+                    player.vy = player.jumpForce;
+                    player.jumpsLeft--;
+                    player.isJumping = true;
+                    playSound('jump');
+
+                    // Jump dust particles
+                    const groundY = canvas.clientHeight - 55;
+                    for (let i = 0; i < 7; i++) {
+                        particles.push({
+                            x: player.x + player.width / 2,
+                            y: player.y + player.height,
+                            vx: (Math.random() - 0.5) * 4,
+                            vy: -Math.random() * 2 - 1,
+                            radius: Math.random() * 3 + 1,
+                            color: '#22d3ee',
+                            alpha: 1
+                        });
+                    }
+                }
+            }
+        }
+
+        function startGame() {
+            resetGame();
+            gameState = 'PLAYING';
+            menuOverlay.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER';
+            playSound('gameover');
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('neon_runner_highscore_v2', highScore);
+                highScoreDisplay.textContent = String(Math.floor(highScore)).padStart(5, '0');
+            }
+
+            menuTitleIcon.textContent = '💀';
+            menuHeading.textContent = 'GAME OVER';
+            menuSubtext.innerHTML = `Score: <span class="text-cyan-400 font-bold">${Math.floor(score)}</span> | Coins: <span class="text-yellow-400 font-bold">${coins}</span> | Level: <span class="text-purple-400 font-bold">${level}</span><br>Press Space or button to restart!`;
+            actionBtn.textContent = 'PLAY AGAIN';
+            menuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            frameCount++;
+            score += 0.1;
+            scoreDisplay.textContent = String(Math.floor(score)).padStart(5, '0');
+
+            // --- LEVEL PROGRESSION SYSTEM ---
+            // Level increases every 250 score points
+            let currentLevel = Math.floor(score / 250) + 1;
+            if (currentLevel > level) {
+                level = currentLevel;
+                levelDisplay.textContent = level;
+                gameSpeed = baseSpeed + (level - 1) * 0.8; // Increase game speed with levels
+                
+                // Trigger Level-Up Announcement Banner
+                levelUpBanner = {
+                    text: `LEVEL ${level}!`,
+                    alpha: 1.0,
+                    scale: 1.8
+                };
+                playSound('levelup');
+            }
+
+            // Fade level up announcement
+            if (levelUpBanner.alpha > 0) {
+                levelUpBanner.alpha -= 0.015;
+                if (levelUpBanner.scale > 1.0) levelUpBanner.scale -= 0.015;
+            }
+
+            const groundY = canvas.clientHeight - 55;
+
+            // Player movement
+            player.vy += gravity;
+            player.y += player.vy;
+
+            // Ground touch check
+            if (player.y >= groundY - player.height) {
+                player.y = groundY - player.height;
+                player.vy = 0;
+                player.isJumping = false;
+                player.jumpsLeft = 2;
+            }
+
+            // --- OBSTACLE SPAWNING ---
+            // Higher levels reduce min spawn gap between obstacles
+            const minGap = Math.max(180, 320 - (level * 15));
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.clientWidth - minGap - Math.random() * 120) {
+                const isTall = Math.random() > 0.6;
+                const obsHeight = isTall ? 50 : 32;
+                const obsWidth = isTall ? 22 : 28;
+                
+                obstacles.push({
+                    x: canvas.clientWidth,
+                    y: groundY - obsHeight,
+                    width: obsWidth,
+                    height: obsHeight,
+                    type: isTall ? 'tall' : 'normal'
+                });
+
+                // Spawn Coins above/near obstacles
+                if (Math.random() > 0.3) {
+                    const coinHeightY = groundY - obsHeight - (Math.random() > 0.5 ? 50 : 85);
+                    const numCoinsInGroup = Math.floor(Math.random() * 3) + 1;
+                    
+                    for (let c = 0; c < numCoinsInGroup; c++) {
+                        coinItems.push({
+                            x: canvas.clientWidth + 40 + (c * 28),
+                            y: coinHeightY,
+                            radius: 9,
+                            collected: false,
+                            rotation: 0
+                        });
+                    }
+                }
+            }
+
+            // Update & Check Obstacles Collision
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+
+                const pad = 5;
+                if (
+                    player.x + pad < obstacles[i].x + obstacles[i].width - pad &&
+                    player.x + player.width - pad > obstacles[i].x + pad &&
+                    player.y + pad < obstacles[i].y + obstacles[i].height - pad &&
+                    player.y + player.height - pad > obstacles[i].y + pad
+                ) {
+                    gameOver();
+                }
+
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Update & Collect Coins
+            for (let i = coinItems.length - 1; i >= 0; i--) {
+                let coin = coinItems[i];
+                coin.x -= gameSpeed;
+                coin.rotation += 0.08;
+
+                // Coin Collection Detection
+                const dx = (player.x + player.width / 2) - coin.x;
+                const dy = (player.y + player.height / 2) - coin.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < coin.radius + player.width / 2 && !coin.collected) {
+                    coin.collected = true;
+                    coins++;
+                    score += 20; // Coin gives +20 score bonus
+                    coinDisplay.textContent = coins;
+                    playSound('coin');
+
+                    // Sparkle particles for coin
+                    for (let p = 0; p < 8; p++) {
+                        particles.push({
+                            x: coin.x,
+                            y: coin.y,
+                            vx: (Math.random() - 0.5) * 5,
+                            vy: (Math.random() - 0.5) * 5,
+                            radius: Math.random() * 3 + 1,
+                            color: '#facc15',
+                            alpha: 1
+                        });
+                    }
+                }
+
+                if (coin.x < -20 || coin.collected) {
+                    coinItems.splice(i, 1);
+                }
+            }
+
+            // Particles update
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.04;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Stars background scroll
+            stars.forEach(star => {
+                star.x -= star.speed * (gameSpeed / 5);
+                if (star.x < 0) star.x = canvas.clientWidth;
+            });
+        }
+
+        function render() {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            const groundY = height - 55;
+
+            // Clear Background
+            ctx.fillStyle = '#070a12';
+            ctx.fillRect(0, 0, width, height);
+
+            // Stars
+            ctx.fillStyle = '#38bdf8';
+            stars.forEach(star => {
+                ctx.globalAlpha = 0.4;
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Ground Perspective Grid Lines
+            ctx.strokeStyle = '#0e7490';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            const gridOffset = (frameCount * gameSpeed) % 36;
+            for (let x = -gridOffset; x < width; x += 36) {
+                ctx.moveTo(x, groundY);
+                ctx.lineTo(x - 24, height);
+            }
+            ctx.stroke();
+
+            // Ground Floor Solid Neon Line
+            ctx.strokeStyle = '#22d3ee';
+            ctx.shadowColor = '#22d3ee';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(width, groundY);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Draw Obstacles (Red Neon Spikes/Barriers)
+            obstacles.forEach(obs => {
+                ctx.fillStyle = '#f43f5e';
+                ctx.shadowColor = '#f43f5e';
+                ctx.shadowBlur = 12;
+                
+                // Rounded bar shape
+                ctx.beginPath();
+                ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 4);
+                ctx.fill();
+
+                // Core stripe detail
+                ctx.fillStyle = '#fecdd3';
+                ctx.fillRect(obs.x + 4, obs.y + 4, obs.width - 8, 4);
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Coins 🪙 (3D spinning effect)
+            coinItems.forEach(coin => {
+                ctx.save();
+                ctx.translate(coin.x, coin.y);
+                const scaleX = Math.cos(coin.rotation);
+                ctx.scale(scaleX, 1);
+
+                ctx.fillStyle = '#facc15';
+                ctx.shadowColor = '#facc15';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(0, 0, coin.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Coin Inner Ring
+                ctx.strokeStyle = '#854d0e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, coin.radius * 0.6, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.restore();
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Draw Player Character (Neon Cyber Runner)
+            ctx.fillStyle = '#22d3ee';
+            ctx.shadowColor = '#22d3ee';
+            ctx.shadowBlur = 14;
+
+            // Body
+            ctx.fillRect(player.x + 6, player.y + 10, player.width - 12, player.height - 14);
+            // Head
+            ctx.fillRect(player.x + 14, player.y, player.width - 12, 16);
+            // Visor Eye
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(player.x + 24, player.y + 4, 4, 4);
+
+            // Running/Jumping Legs Animation
+            ctx.fillStyle = '#22d3ee';
+            if (player.isJumping) {
+                ctx.fillRect(player.x + 8, player.y + player.height - 8, 6, 8);
+                ctx.fillRect(player.x + 22, player.y + player.height - 8, 6, 8);
+            } else {
+                const legState = Math.floor(frameCount / 5) % 2;
+                if (legState === 0) {
+                    ctx.fillRect(player.x + 8, player.y + player.height - 8, 6, 8);
+                    ctx.fillRect(player.x + 22, player.y + player.height - 12, 6, 12);
+                } else {
+                    ctx.fillRect(player.x + 8, player.y + player.height - 12, 6, 12);
+                    ctx.fillRect(player.x + 22, player.y + player.height - 8, 6, 8);
+                }
+            }
+            ctx.shadowBlur = 0;
+
+            // Level Up Text Animation Banner Overlay
+            if (levelUpBanner.alpha > 0) {
+                ctx.save();
+                ctx.translate(width / 2, height / 2 - 20);
+                ctx.scale(levelUpBanner.scale, levelUpBanner.scale);
+                ctx.font = '22px "Press Start 2P", monospace';
+                ctx.fillStyle = `rgba(192, 132, 252, ${levelUpBanner.alpha})`;
+                ctx.shadowColor = '#c084fc';
+                ctx.shadowBlur = 15;
+                ctx.textAlign = 'center';
+                ctx.fillText(levelUpBanner.text, 0, 0);
+                ctx.restore();
+            }
+        }
+
+        // Control Listeners
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                triggerJump();
+            }
+        });
+
+        actionBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerJump();
+        });
+
+        touchJumpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerJump();
+        });
+
+        canvas.addEventListener('click', () => {
+            triggerJump();
+        });
+
+        // Loop animation frame
+        function loop() {
+            update();
+            render();
+            requestAnimationFrame(loop);
+        }
+
+        resetGame();
+        render();
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
