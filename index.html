@@ -26,7 +26,7 @@ body {
 }
 
 .header h1 {
-    font-size: 38px;
+    font-size: 40px;
     margin-bottom: 10px;
 }
 
@@ -50,7 +50,7 @@ body {
     padding: 30px 20px;
     text-align: center;
     box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: 0.2s;
 }
 
 .game-card:hover {
@@ -64,8 +64,8 @@ body {
 }
 
 .game-card h2 {
-    font-size: 25px;
-    margin-bottom: 22px;
+    font-size: 24px;
+    margin-bottom: 20px;
 }
 
 .buttons {
@@ -79,11 +79,11 @@ body {
     display: inline-block;
     text-decoration: none;
     color: white;
-    padding: 12px 20px;
+    padding: 12px 18px;
     border-radius: 9px;
     font-weight: bold;
-    font-size: 16px;
-    transition: transform 0.15s, opacity 0.15s;
+    font-size: 15px;
+    transition: 0.15s;
 }
 
 .btn:hover {
@@ -104,6 +104,13 @@ body {
     margin-top: 12px;
 }
 
+.loading {
+    text-align: center;
+    padding: 50px;
+    color: #aaa;
+    font-size: 18px;
+}
+
 .footer {
     text-align: center;
     padding: 35px 15px;
@@ -111,7 +118,6 @@ body {
     font-size: 14px;
 }
 
-/* Mobile */
 @media (max-width: 600px) {
     .header h1 {
         font-size: 30px;
@@ -119,10 +125,6 @@ body {
 
     .games-container {
         padding: 15px;
-    }
-
-    .game-card {
-        padding: 25px 15px;
     }
 }
 </style>
@@ -135,75 +137,134 @@ body {
     <p>Play • Download • Follow</p>
 </div>
 
-<div class="games-container">
-
-    <!-- GAME 2 -->
-    <div class="game-card">
-        <div class="game-icon">🎯</div>
-        <h2>Game 2</h2>
-
-        <div class="buttons">
-            <a class="btn play" href="game2.html">
-                🎮 PLAY
-            </a>
-
-            <a class="btn download" href="game2.html" download>
-                ⬇ DOWNLOAD
-            </a>
-        </div>
-
-        <a class="btn follow" href="https://github.com/shyorana88/my-project-game" target="_blank">
-            ✅ FOLLOW
-        </a>
+<div id="games" class="games-container">
+    <div class="loading">
+        ⏳ Games loading...
     </div>
-
-
-    <!-- GAME 3 -->
-    <div class="game-card">
-        <div class="game-icon">🚗</div>
-        <h2>Neon Car Dodge</h2>
-
-        <div class="buttons">
-            <a class="btn play" href="game3.html">
-                🎮 PLAY
-            </a>
-
-            <a class="btn download" href="game3.html" download>
-                ⬇ DOWNLOAD
-            </a>
-        </div>
-
-        <a class="btn follow" href="https://github.com/shyorana88/my-project-game" target="_blank">
-            ✅ FOLLOW
-        </a>
-    </div>
-
-
-    <!-- GAME 4 -->
-    <div class="game-card">
-        <div class="game-icon">🔥</div>
-        <h2>Game 4</h2>
-
-        <div class="buttons">
-            <a class="btn play" href="game4.html">
-                🎮 PLAY
-            </a>
-
-            <a class="btn download" href="game4.html" download>
-                ⬇ DOWNLOAD
-            </a>
-        </div>
-
-        <a class="btn follow" href="https://github.com/shyorana88/my-project-game" target="_blank">
-            ✅ FOLLOW
-        </a>
-    </div>
-
 </div>
 
 <div class="footer">
     © 2026 My Games • All Rights Reserved
 </div>
+
+<script>
+
+const username = "shyorana88";
+const repository = "my-project-game";
+
+const gamesBox = document.getElementById("games");
+
+const icons = ["🎮", "🚗", "🔥", "🎯", "🏎️", "⚡", "👾", "🕹️"];
+
+function makeGameName(filename) {
+
+    let name = filename
+        .replace(".html", "")
+        .replace(/[-_]/g, " ");
+
+    return name
+        .replace(/\b\w/g, letter => letter.toUpperCase());
+}
+
+function getIcon(index) {
+    return icons[index % icons.length];
+}
+
+async function loadGames() {
+
+    try {
+
+        const apiURL =
+        `https://api.github.com/repos/${username}/${repository}/contents/`;
+
+        const response = await fetch(apiURL);
+
+        if (!response.ok) {
+            throw new Error("GitHub API error");
+        }
+
+        const files = await response.json();
+
+        const games = files.filter(file =>
+            file.type === "file" &&
+            file.name.toLowerCase().endsWith(".html") &&
+            file.name.toLowerCase() !== "index.html"
+        );
+
+        gamesBox.innerHTML = "";
+
+        if (games.length === 0) {
+
+            gamesBox.innerHTML = `
+                <div class="loading">
+                    😕 Abhi koi game nahi mila.
+                </div>
+            `;
+
+            return;
+        }
+
+        games.forEach((game, index) => {
+
+            const card = document.createElement("div");
+
+            card.className = "game-card";
+
+            const gameName = makeGameName(game.name);
+
+            card.innerHTML = `
+
+                <div class="game-icon">
+                    ${getIcon(index)}
+                </div>
+
+                <h2>${gameName}</h2>
+
+                <div class="buttons">
+
+                    <a
+                        class="btn play"
+                        href="${game.name}">
+                        🎮 PLAY
+                    </a>
+
+                    <a
+                        class="btn download"
+                        href="${game.name}"
+                        download>
+                        ⬇ DOWNLOAD
+                    </a>
+
+                </div>
+
+                <a
+                    class="btn follow"
+                    href="https://github.com/${username}/${repository}"
+                    target="_blank">
+                    ⭐ FOLLOW
+                </a>
+            `;
+
+            gamesBox.appendChild(card);
+
+        });
+
+    } catch (error) {
+
+        gamesBox.innerHTML = `
+            <div class="loading">
+                ❌ Games load nahi ho paaye.<br><br>
+                GitHub repository check karo.
+            </div>
+        `;
+
+        console.error(error);
+    }
+}
+
+loadGames();
+
+</script>
 
 </body>
 </html>
